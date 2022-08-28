@@ -66,6 +66,7 @@ class TensorCoreMatcher : public IRVisitor {
   }
 
   void Visit_(const Evaluate *op) final {
+    std::cout << "TensorCoreMatcher " << op->value << std::endl;
     if (const auto call = op->value.as<Call>()) {
       if (tensor_core_on_ && call->is_intrinsic(air::ir::intrinsic::tvm_load_matrix_sync)) {
         Expr warp_tile_m = call->args[1];
@@ -128,6 +129,7 @@ class SharedReconstruction : public IRMutator {
   Stmt Mutate_(const Provide *op, const Stmt &s) final {
     Stmt stmt = IRMutator::Mutate_(op, s);
     op = stmt.as<Provide>();
+    std::cout << "SharedReconstruction(Provide) " << op->func << std::endl;
     auto it_matrix = wmma_matrix_.find(akg::common::GetGlobalName(op->func->func_name()));
     if (it_matrix != wmma_matrix_.end() && op->func->func_name().find("shared") != std::string::npos) {
       auto it_layout = wmma_layout_.find(it_matrix->second);
@@ -260,6 +262,7 @@ class SharedReconstruction : public IRMutator {
     if (!op) {
       return stmt;
     }
+    std::cout << "SharedReconstruction(Realize) " << op->func << std::endl;
     auto it_matrix = wmma_matrix_.find(akg::common::GetGlobalName(op->func->func_name()));
     if (it_matrix != wmma_matrix_.end() && op->func->func_name().find("shared") != std::string::npos) {
       auto it_layout = wmma_layout_.find(it_matrix->second);

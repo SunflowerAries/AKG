@@ -405,6 +405,9 @@ isl::schedule_node SharedMemoryManager::HoistClusters(const isl::schedule_node &
       continue;
     }
 
+    std::cout << "HoistClusters " << buffer_info.tensor_id << " " << buffer_info.mark_tag << " "
+    << buffer_info.dst_tensor_id << std::endl;
+
     auto id = buffer_info.tensor_id;
 
     auto box_sizes = fp_cluster->GetFixedBoxSizes();

@@ -230,9 +230,12 @@ isl::map AddSuffix4Accesses(AccessMap &accesses, const isl::map &in_map, const N
   }
 
   auto domain_space = tensor_map.get_space().domain();
+  std::cout << "AddSuffix4Accesses " << tensor_map << " " << tensor_map.get_space() << " " << tensor_map.get_space().domain() << std::endl;
   auto tag_space = domain_space.params().add_named_tuple_id_ui(suffix_id, 0);
+  std::cout << domain_space.params() << " add_named_tuple_id_ui: " << tag_space << std::endl;
   domain_space = domain_space.product(tag_space).unwrap();
   tensor_map = tensor_map.preimage_domain(isl::multi_aff::domain_map(domain_space));
+  std::cout << isl::multi_aff::domain_map(domain_space) << " " << tensor_map << std::endl;
 
   return tensor_map;
 }

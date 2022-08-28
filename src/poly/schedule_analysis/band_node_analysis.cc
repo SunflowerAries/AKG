@@ -300,9 +300,34 @@ class OperatorInfoCollector {
       isl::union_map upa = isl::union_map(isl::map(isl::multi_aff(space, aff_list)));
       bool enable_tensor_core = false;
       bool enable_matmul = CheckMatmul(op, enable_tensor_core);
+      bool enable_matmul_elem = false;
       enable_tensor_core &= enable_matmul;
       if (enable_matmul) {
         RecordMatrixInfoForFuse(op);
+        TensorEntry matmul_t;
+        auto provides = scop_info_.analysis_result_.GetProvideAnalysis();
+        for (auto &it : provides) {
+          for (auto &prov : it.second) {
+            if (prov.op == op) {
+              matmul_t = prov.dst;
+            }
+          }
+        }
+        for (auto &it : provides) {
+          for (auto &prov : it.second) {
+            if (std::find_if(prov.src.begin(), prov.src.end(), [&matmul_t](const TensorEntry &t) { return t.name == matmul_t.name; }) != prov.src.end() &&
+              prov.basic_op_type.find(AT_ELEMWISE) != std::string::npos) {
+              std::for_each(prov.src.begin(), prov.src.end(), [&matmul_t, this](const TensorEntry &t) {
+                if (t.name != matmul_t.name) {
+                  this->scop_info_.analysis_result_.RecordMatrixMatmulMap(t.name, MATRIX_BIAS);
+                }
+              });
+              this->scop_info_.analysis_result_.RecordMatrixMatmulMap(prov.dst.name, MATRIX_ELEM_OUT);
+              this->scop_info_.analysis_result_.RecordMatrixMatmulMajor(prov.dst.name, this->scop_info_.analysis_result_.GetMatrixMatmulMajor()[op->func->func_name()]);
+              enable_matmul_elem = true;
+            }
+          }
+        }
       }
       if (enable_tensor_core) {
         // Default vectorization access mode (128 bits).
@@ -311,6 +336,7 @@ class OperatorInfoCollector {
         }
       }
       scop_info_.user_config_.SetEnableMatmul(enable_matmul);
+      scop_info_.user_config_.SetEnableMatmulElem(enable_matmul_elem);
       scop_info_.user_config_.SetEnableTensorCore(enable_tensor_core);
       scop_info_.user_config_.SetEnableTensorCoreUsePoly(enable_tensor_core);
     }

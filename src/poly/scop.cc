@@ -265,7 +265,15 @@ Stmt GenHalide(ScopInfo &info, const isl::schedule &sch, bool used_for_tile_out_
   auto ast_node = builder.node_from(sch);
   TIMER_SHOW("NodeFrom", std::string(info.mmu_info_.IsSpecGemm() ? "_specgemm" : ""));
 
+  if (!used_for_tile_out_band)
+    std::cout << "(GenHalide) " << ast_node << std::endl;
   ast_node = CanonicalizeBlockInAst(ast_node);
+  if (!used_for_tile_out_band) {
+    PrintHeader("FINAL ASTNODE");
+    std::cout << FormatMupaStr(ast_node.to_str(), false) << std::endl << std::endl;
+    PrintHeader("FINAL ASTNODE TO C");
+    std::cout << ast_node.to_C_str() << std::endl;
+  }
 
   if (PRINT_EMITTER) {
     PrintHeader("FINAL SCHEDULE");

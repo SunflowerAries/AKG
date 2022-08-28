@@ -29,16 +29,18 @@ class TestCase(TestBase):
                 (1, ), False, False), ["level0"]),
         ]
         self.args_gpu = [
-            ("001_case", batch_matmul_run, ((32, 12, 128, 128), (32, 12, 128, 64), 'float16', 'float16', "NHDT",
-                "NHTD", "NHDT", (1, ), False, True), ["level0"]),
-            ("002_case", batch_matmul_run, ((256, 128), (64, 128), 'float16', 'float16', "NHDT", "NHDT", "NHDT",
+            # ("001_case", batch_matmul_run, ((32, 12, 128, 128), (32, 12, 128, 64), 'float16', 'float16', "NHDT",
+            #     "NHTD", "NHDT", (1, ), False, True), ["level0"]),
+            # ("002_case", batch_matmul_run, ((256, 128), (64, 128), 'float16', 'float16', "NHDT", "NHDT", "NHDT",
+            #     (1, ), False, True), ["level0"]),
+            ("003_case", batch_matmul_run, ((12288, 1024), (1024, 1024), 'float16', 'float16', "NHDT", "NHDT", "NHDT",
                 (1, ), False, True), ["level0"]),
-            ("003_case", batch_matmul_run, ((128, 32), (128, 512), 'float16', 'float16', "NHTD", "NHTD", "NHDT",
-                (1, ), False, True), ["level0"]),
-            ("004_case", batch_matmul_run, ((128, 64), (64, 32), 'float16', 'float16', "NHDT", "NHTD", "NHDT",
-                (1, ), False, True), ["level0"]),
-            ("005_case", batch_matmul_run, ((32, 1, 128, 64), (32, 1, 64, 32), 'float16', 'float16', "NHDT", "NHTD", "NHDT",
-                (1, ), False, True), ["level0"]),
+            # ("003_case", batch_matmul_run, ((128, 32), (128, 512), 'float16', 'float16', "NHTD", "NHTD", "NHDT",
+            #     (1, ), False, True), ["level0"]),
+            # ("004_case", batch_matmul_run, ((128, 64), (64, 32), 'float16', 'float16', "NHDT", "NHTD", "NHDT",
+            #     (1, ), False, True), ["level0"]),
+            # ("005_case", batch_matmul_run, ((32, 1, 128, 64), (32, 1, 64, 32), 'float16', 'float16', "NHDT", "NHTD", "NHDT",
+            #     (1, ), False, True), ["level0"]),
         ]
 
     def setup(self):
@@ -46,7 +48,8 @@ class TestCase(TestBase):
         return True
 
     def run_gpu_level0(self):
-        return self.run_cases(self.args_default + self.args_gpu, utils.CUDA, "level0")
+        return self.run_cases(self.args_gpu, utils.CUDA, "level0")
+        # return self.run_cases(self.args_default + self.args_gpu, utils.CUDA, "level0")
     
     def run_cpu_level0(self):
         return self.run_cases(self.args_default, utils.LLVM, "level0")

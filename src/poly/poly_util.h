@@ -477,6 +477,10 @@ constexpr auto TENSOR_A = "tensor_a";
 constexpr auto TENSOR_B = "tensor_b";
 constexpr auto TENSOR_C = "tensor_c";
 
+// Tensor bias
+constexpr auto TENSOR_BIAS = "tensor_bias";
+constexpr auto TENSOR_ELEM_OUT = "tensor_elem_out";
+
 // promote marker for ForType
 constexpr auto FOR_SERIAL = "for_serial";
 constexpr auto FOR_PARALLEL = "for_parallel";
@@ -506,6 +510,8 @@ constexpr auto MATRIX_A = "matrix_a";
 constexpr auto MATRIX_B = "matrix_b";
 constexpr auto MATRIX_C = "matrix_c";
 constexpr auto MATRIX_ELSE = "matrix_else";
+constexpr auto MATRIX_BIAS = "matrix_bias";
+constexpr auto MATRIX_ELEM_OUT = "matrix_elem_out";
 constexpr auto FRAGMENT = "fragment_";
 constexpr auto LOCAL_SUFFIX = "_local";
 constexpr auto SHARE_SUFFIX = "_shared";

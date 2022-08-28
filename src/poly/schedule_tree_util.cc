@@ -780,6 +780,10 @@ std::unordered_map<std::string, std::string> GetMatmulTensorsName(ScopInfo &scop
       tensors.emplace(MATRIX_B, i.first);
     } else if (i.second == MATRIX_ELSE) {
       tensors.emplace(MATRIX_ELSE, i.first);
+    } else if (i.second == MATRIX_BIAS) {
+      tensors.emplace(MATRIX_BIAS, i.first);
+    } else if (i.second == MATRIX_ELEM_OUT) {
+      tensors.emplace(MATRIX_ELEM_OUT, i.first);
     }
   }
   return tensors;
@@ -801,6 +805,10 @@ std::string GetTensorMark(const std::string &item, ScopInfo &scop_info) {
     tensor_mark = TENSOR_B;
   } else if (item_tensor_name == tensors[MATRIX_C]) {
     tensor_mark = TENSOR_C;
+  } else if (item_tensor_name == tensors[MATRIX_BIAS]) {
+    tensor_mark = TENSOR_BIAS;
+  } else if (item_tensor_name == tensors[MATRIX_ELEM_OUT]) {
+    tensor_mark = TENSOR_ELEM_OUT;
   }
   return tensor_mark;
 }

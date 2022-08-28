@@ -150,6 +150,8 @@ void CreateCluster::RecordGemmTensors() {
   RecordPromotedTensor(MATRIX_A);
   RecordPromotedTensor(MATRIX_B);
   RecordPromotedTensor(MATRIX_C);
+  RecordPromotedTensor(MATRIX_BIAS);
+  RecordPromotedTensor(MATRIX_ELEM_OUT);
 }
 
 PromotedTensor CreateCluster::GetCurrentMarkerTensorsForGemm(const std::unordered_set<std::string> &tensor_set) {
@@ -282,6 +284,9 @@ void SharedCreateCluster::CreateClusterListForGemm(const isl::schedule_node &nod
     tensor_set.clear();
     if (hoist_tensor_c) {
       tensor_set.emplace(TENSOR_C);
+      if (scop_info_.user_config_.GetEnableMatmulElem()) {
+        tensor_set.emplace(TENSOR_ELEM_OUT);
+      }
     } else {
       tensor_set.emplace(TENSOR_A);
       tensor_set.emplace(TENSOR_B);
@@ -550,9 +555,15 @@ void RegisterCreateCluster::CreateClusterListForGemm(const isl::schedule_node &n
     tensor_set.clear();
     if (hoist_tensor_c) {
       tensor_set.emplace(TENSOR_C);
+      if (scop_info_.user_config_.GetEnableMatmulElem()) {
+        tensor_set.emplace(TENSOR_ELEM_OUT);
+      }
     } else {
       tensor_set.emplace(TENSOR_A);
       tensor_set.emplace(TENSOR_B);
+      if (scop_info_.user_config_.GetEnableMatmulElem()) {
+        tensor_set.emplace(TENSOR_BIAS);
+      }
     }
     PromotedTensor current_tensors = GetCurrentMarkerTensorsForGemm(tensor_set);
     RecordPromotedTensorInfo(node, mark_name, current_tensors);

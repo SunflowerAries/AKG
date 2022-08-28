@@ -164,13 +164,17 @@ class ScopMakeScheduleTree final : protected IRVisitor {
     scop_info_.analysis_result_.RecordStatement(id, op);
 
     auto tuple_space = isl::space(set.ctx(), 0);
+    std::cout << "Visit_Provide: " << tuple_space;
     tuple_space = tuple_space.add_named_tuple_id_ui(id, static_cast<unsigned int>(outer.size()));
+    std::cout << " add_named_tuple_id_ui: " << tuple_space << " " << set << " " << set.get_space() << std::endl;
     OperatorDomainSpace op_domain;
     op_domain.param_space = set.get_space();
     op_domain.tuple = isl::multi_id(tuple_space, outer);
+    std::cout << "multi_id: " << outer << " " << op_domain.tuple << std::endl;
     scop_info_.analysis_result_.RecordOperatorDomain(id, op_domain);
     auto domain = set.unbind_params(op_domain.tuple);
     sch = isl::schedule::from_domain(domain);
+    std::cout << "unbind_params: " << domain << "from_domain: " << sch << std::endl;
 
     isl::union_map new_reads, new_writes, new_to_inner;
     isl::union_map new_reads_with_conds, new_writes_with_conds;
@@ -212,8 +216,11 @@ class ScopMakeScheduleTree final : protected IRVisitor {
     auto sch_rest = MakeScheduleTreeHelper(op->rest, scop_info_, set, outer, macro_stmt);
     if (macro_stmt >= 0)
       sch = sch_first;
-    else
+    else {
       sch = sch_first.sequence(sch_rest);
+      std::cout << "Visit_Block: " << sch << std::endl;
+    }
+      
     found = true;
   }
 
@@ -342,6 +349,8 @@ class ScopMakeScheduleTree final : protected IRVisitor {
     auto upa = isl::union_pw_aff::empty(domain.space());
     for (auto set : domain.get_set_list()) {
       upa = upa.union_add(isl::union_pw_aff(f.unbind_params_insert_domain(map.at(set.tuple_id()).tuple)));
+      std::cout << "GetUnionPwAffAtDomain: " << f << " " << set << " " << set.tuple_id() << " " \
+      << map.at(set.tuple_id()).tuple << " " << f.unbind_params_insert_domain(map.at(set.tuple_id()).tuple) << std::endl;
     }
     return upa;
   }
@@ -349,6 +358,8 @@ class ScopMakeScheduleTree final : protected IRVisitor {
   void Visit_(const For *op) final {
     auto loop_var_id = isl::id(set.ctx(), op->loop_var->name_hint);
     auto space = set.get_space().add_param(loop_var_id);
+    std::cout << "Visit_For: add_param:" << space << " " << loop_var_id << std::endl;
+    std::cout << "Visit_For: param_on_domain: " << isl::aff::param_on_domain(space, loop_var_id) << std::endl;
 
     auto loop_var = isl::aff::param_on_domain(space, loop_var_id);
 
@@ -367,6 +378,8 @@ class ScopMakeScheduleTree final : protected IRVisitor {
                             scop_info_.analysis_result_.GetOperatorDomainMap()));
 
     sch = body_schedule.insert_partial_schedule(multi_union_pw_aff_func);
+    std::cout << "insert_partial_schedule: " << multi_union_pw_aff_func << " " << body_schedule << \
+    " " << sch << std::endl;
     found = true;
   }
 

@@ -36,18 +36,25 @@ std::pair<isl::map, isl::map> ConstructPolyAccess(const OperatorDomainSpace &dom
     isl::id(domain.param_space.ctx(), tensor), dimensions.size());
   auto tensor_space = coordinate.get_space();
 
+  std::cout << "ConstructPolyAccess: " << dimensions << " " << domain.param_space << " " << coordinate << " " << tensor_space << std::endl;
+
   // create a fully access set
   isl::set tensor_access = isl::set::universe(tensor_space);
 
   // add access relation constraint for each parameter of one dimension
   auto identity = isl::multi_aff::identity(tensor_space.map_from_set());
+
   for (size_t dim_idx = 0; dim_idx < dimensions.size(); ++dim_idx) {
     // make aff bounds of each dimension.
     auto domain_aff_bounds = Expr2Aff(domain.param_space, dimensions[dim_idx]);
     if (!domain_aff_bounds.is_null()) {
+      std::cout << domain_aff_bounds << " ";
       domain_aff_bounds = domain_aff_bounds.unbind_params_insert_domain(coordinate);
+      std::cout << domain_aff_bounds << " ";
       tensor_access = tensor_access.intersect(
         domain_aff_bounds.eq_set(identity.get_aff(static_cast<int>(dim_idx))));
+      std::cout << identity << " " << identity.get_aff(static_cast<int>(dim_idx)) << " " << domain_aff_bounds.eq_set(identity.get_aff(static_cast<int>(dim_idx))) << \
+       tensor_access << " " << std::endl;
     }
   }
 

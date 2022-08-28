@@ -534,6 +534,9 @@ class UserConfig {
   bool GetEnableMatmul() { return enable_matmul_; }
   void SetEnableMatmul(bool enable_matmul) { enable_matmul_ = enable_matmul; }
 
+  bool GetEnableMatmulElem() { return enable_matmul_elem_; }
+  void SetEnableMatmulElem(bool enable_matmul_elem) { enable_matmul_elem_ = enable_matmul_elem; }
+
   bool GetEnableTensorCore() {
     SetEnableTensorCore(enable_tensor_core_);
     return enable_tensor_core_;
@@ -713,6 +716,7 @@ class UserConfig {
   bool enable_tensor_core_{false};
   bool pragma_enable_emit_core_{true};
   bool enable_tensor_core_use_poly_{false};
+  bool enable_matmul_elem_{false};
   // conv config
   bool enable_conv_tensor_core_{false};
   bool enable_conv2d_direct_{false};
