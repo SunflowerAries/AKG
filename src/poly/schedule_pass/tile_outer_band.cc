@@ -99,6 +99,7 @@ isl::schedule TileOuterBand::TileOuterBandHelper(const isl::schedule sch,
 
   // 1. obtain the outermost tilable band
   isl::schedule_node node = GetOuterBand(sch.get_root());
+  std::cout << "TileOuterBandHelper" << std::endl << node << std::endl;
 
   // 2. Traverse the descendants of "node" (including the node itself)
   // in depth first postorder via the callback function.
@@ -1148,6 +1149,7 @@ isl::schedule_node TileOuterBand::TileElementWiseForCuda(const isl::schedule_nod
   size_t start_depth = orig_node.get_tree_depth();
   // tile block config
   auto node = TileThreadAndBlockConfig(orig_node, true);
+  std::cout << "TileElementWiseForCuda" << std::endl << node << std::endl;
 
   // get tile size
   auto level_tile_size = GetTileSizeOfLevelForCuda(node, TileType::C1);
@@ -1158,16 +1160,19 @@ isl::schedule_node TileOuterBand::TileElementWiseForCuda(const isl::schedule_nod
   } else {
     node = TileBand(node, level_tile_size).child(0);
   }
+  std::cout << "TileElementWiseForCuda(after IsolateTilesForCudaAndCpu)" << std::endl << node << std::endl;
 
   node = node.insert_mark(PROMOTE_GLOBAL_TO_SHARED).child(0);
 
   // tile thread config
   node = TileThreadAndBlockConfig(node);
+  std::cout << "TileElementWiseForCuda(after second tile)" << std::endl << node << std::endl;
 
   // vectorize for elementwise operator
   if (enable_vectorization) {
     level_tile_size = GetTileSizeOfLevelForCuda(node, TileType::C0);
     node = IsolateTilesForCudaAndCpu(node, level_tile_size);
+    std::cout << "TileElementWiseForCuda(after second IsolateTilesForCudaAndCpu)" << std::endl << node << std::endl << level_tile_size << std::endl;
     node = node.insert_mark(PROMOTE_GLOBAL_TO_REGISTER_VECTORIZED);
   }
   node = node.ancestor(node.get_tree_depth() - start_depth);
@@ -1289,12 +1294,82 @@ isl::schedule_node TileOuterBand::TileThreadAndBlockConfig(const isl::schedule_n
   return node.insert_mark(mapping_marker).child(0);
 }
 
+isl::schedule_node TileOuterBand::ReorderStatements(const isl::schedule_node &node, isl::union_set elem_statements) {
+  auto domain = CollectDomain(node);
+  auto order_node = node;
+  isl::union_set_list filter_list;
+
+  auto matmul_statements = domain.subtract(elem_statements);
+  // std::cout << "TileMatmulOperatorForCuda(matmul_statements)" << std::endl << matmul_statements << std::endl;
+  filter_list = isl::union_set_list(matmul_statements).add(elem_statements);
+  order_node = order_node.insert_sequence(filter_list);
+  auto elem_node = order_node.child(1).child(0).as<isl::schedule_node_band>();
+  elem_node = elem_node.del().as<isl::schedule_node_band>();
+  // std::cout << "TileMatmulOperatorForCuda(elem_node)"  << std::endl << elem_node << std::endl;
+  elem_node = elem_node.split(elem_node.n_member() - 1);
+  // std::cout << "TileMatmulOperatorForCuda(elem_node)"  << std::endl << elem_node << std::endl;
+  elem_node = elem_node.child(0).del().parent().as<isl::schedule_node_band>();
+  // std::cout << "TileMatmulOperatorForCuda(elem_node)"  << std::endl << elem_node << std::endl;
+  order_node = elem_node.parent().parent().parent();
+  // std::cout << "TileMatmulOperatorForCuda(order_node)"  << std::endl << order_node << std::endl;
+  return order_node;
+}
+
+isl::union_set TileOuterBand::GetCurrentNodeElemStatements(const isl::schedule_node node, MatMulElemInfoMap &all_elem_map,
+                                                const bool need_delete_elem) {
+  isl::union_set elem_statements = isl::union_set::empty(node.ctx());
+  if (!node.isa<isl::schedule_node_band>()) {
+    return elem_statements;
+  }
+  auto band_node_domain = node.as<isl::schedule_node_band>().get_partial_schedule().domain();
+  // std::cout << "GetCurrentNodeElemStatements" << std::endl << band_node_domain << std::endl;
+  StatementMap all_statements = scop_info_.analysis_result_.GetStatementMap();
+  isl::union_map elem_statement_map = isl::union_map::empty(node.ctx());
+
+  for (auto it = all_elem_map.begin(); it != all_elem_map.end();) {
+    elem_statement_map = elem_statement_map.unite(it->second);
+    auto this_elem = GetElemStatements(band_node_domain, elem_statement_map, all_statements);
+    if (!this_elem.is_empty()) {
+      elem_statements = elem_statements.unite(this_elem);
+      // std::cout << "GetCurrentNodeElemStatements" << std::endl << elem_statements << std::endl;
+      it = need_delete_elem ? all_elem_map.erase(it) : ++it;
+    } else {
+      ++it;
+    }
+  }
+  return elem_statements;
+}
+
+isl::union_set TileOuterBand::GetElemStatements(isl::union_set domain, isl::union_map elem_statement_map,
+                                                  StatementMap all_statements) {
+  isl::union_set elem_domain = elem_statement_map.intersect_domain(domain).domain();
+  isl::union_set elem_statements = isl::union_set::empty(elem_domain.get_space());
+  // std::cout << "GetElemStatements" << std::endl << elem_domain << std::endl << elem_statement_map << std::endl;
+  elem_domain.foreach_set([&elem_statements, all_statements](isl::set set) {
+    isl::id id = set.get_tuple_id();
+
+    CHECK_EQ(all_statements.count(id), 1u) << "setId is not a statement in scop" << id;
+    const Node *stmt_node = all_statements.at(id);
+
+    if (stmt_node != nullptr && stmt_node->IsInstance<Provide>()) {
+      const auto provide = static_cast<const Provide *>(stmt_node);
+      if (provide->value.defined()) {
+        elem_statements = elem_statements.unite(set);
+        // std::cout << "GetElemStatements" << std::endl << elem_statements << std::endl;
+      }
+    }
+  });
+  return elem_statements;
+}
+
 isl::schedule_node TileOuterBand::TileMatmulOperatorForCuda(const isl::schedule_node &node) {
   auto tile_node = node;
+  isl::schedule_node tile_elem_node;
   size_t start_depth = tile_node.get_tree_depth();
 
   tile_node = TileThreadAndBlockConfig(tile_node, true);
   tile_node = TileBand(tile_node, GetTileSizeOfLevelForCuda(tile_node, TileType::C1));
+  // std::cout << "TileMatmulOperatorForCuda" << std::endl << tile_node << std::endl;
 
   isl::schedule_node_band band_node = tile_node.as<isl::schedule_node_band>();
   size_t count_coincident = 0;
@@ -1307,7 +1382,23 @@ isl::schedule_node TileOuterBand::TileMatmulOperatorForCuda(const isl::schedule_
 
   // split the k axis
   tile_node = band_node.split(count_coincident);
+  if (scop_info_.user_config_.GetEnableMatmulElem()) {
+
+    auto domain = CollectDomain(tile_node.child(0));
+    // std::cout << "TileMatmulOperatorForCuda(domain)" << std::endl << domain << std::endl;
+    // auto domain1 = CollectDomain(tile_node.child(0).child(0));
+    auto all_elem_map = scop_info_.analysis_result_.GetMatMulElemInfoMap();
+    auto elem_statements = GetCurrentNodeElemStatements(tile_node, all_elem_map);
+    
+    // std::cout << "TileMatmulOperatorForCuda(elem_statements)" << std::endl << elem_statements << std::endl;
+    
+    tile_node = ReorderStatements(tile_node.child(0), elem_statements);
+  }
+  // std::cout << "TileMatmulOperatorForCuda" << std::endl << tile_node << std::endl;
+  
   tile_node = InsertPromoteMarker(tile_node);
+
+  // std::cout << "TileMatmulOperatorForCuda(after InsertPromoteMarker)" << std::endl << tile_node << std::endl;
 
   if (scop_info_.user_config_.GetEnableTensorCoreUsePoly()) {
     auto replace_cfg_map = scop_info_.user_config_.GetReplaceConfig();
@@ -1318,10 +1409,12 @@ isl::schedule_node TileOuterBand::TileMatmulOperatorForCuda(const isl::schedule_
     tile_node = tile_node.child(0);
     tile_node = TileBand(tile_node, GetTileSizeOfLevelForCuda(tile_node, TileType::C0C1, count_coincident));
   }
+  // std::cout << "TileMatmulOperatorForCuda(after second TileBand)" << std::endl << tile_node << std::endl;
 
   // The third tiling of tensor_core is to map to warp.
   tile_node = tile_node.child(0);
   tile_node = TileBand(tile_node, GetTileSizeOfLevelForCuda(tile_node, TileType::WARPC1, count_coincident));
+  // std::cout << "TileMatmulOperatorForCuda(after third TileBand)" << std::endl << tile_node << std::endl;
   if (!scop_info_.user_config_.GetEnableTensorCoreUsePoly()) {
     tile_node = tile_node.child(0);
   }
@@ -1332,6 +1425,7 @@ isl::schedule_node TileOuterBand::TileMatmulOperatorForCuda(const isl::schedule_
 
   // The last tiling of tensor_core is to calculate the size of fragment.
   tile_node = TileBand(tile_node, GetTileSizeOfLevelForCuda(tile_node, TileType::C0));
+  // std::cout << "TileMatmulOperatorForCuda(after last TileBand)" << std::endl << tile_node << std::endl;
 
   if (scop_info_.user_config_.GetEnableConvTensorCore()) {
     int child_depth = KH_KW_DEPTH;
@@ -1345,6 +1439,20 @@ isl::schedule_node TileOuterBand::TileMatmulOperatorForCuda(const isl::schedule_
   }
 
   tile_node = tile_node.ancestor(tile_node.get_tree_depth() - start_depth);
+  // std::cout << "TileMatmulOperatorForCuda(final)" << std::endl << tile_node << std::endl;
+  if (scop_info_.user_config_.GetEnableMatmulElem()) {
+    tile_elem_node = tile_node.child(0).child(0).child(1).child(0);
+    // std::cout << "TileMatmulOperatorForCuda(first tile_elem_node)" << std::endl << tile_elem_node << std::endl;
+    tile_elem_node = tile_elem_node.insert_mark(PROMOTE_GLOBAL_TO_SHARED).child(0);
+    tile_elem_node = tile_elem_node.insert_mark(THREAD_MARKER).child(0);
+    auto level_tile_size = ComputeBandTilesSizes(tile_elem_node, &std::vector<int>{1, 8}[0]);
+    tile_elem_node = TileBand(tile_elem_node, level_tile_size).child(0);
+    // std::cout << "TileMatmulOperatorForCuda(second tile_elem_node)" << std::endl << tile_elem_node << std::endl;
+    tile_elem_node = tile_elem_node.insert_mark(PROMOTE_GLOBAL_TO_REGISTER_VECTORIZED);
+    // std::cout << "TileMatmulOperatorForCuda(PROMOTE_GLOBAL_TO_REGISTER_VECTORIZED)" << std::endl << tile_elem_node << std::endl;
+    tile_node = tile_elem_node.ancestor(tile_elem_node.get_tree_depth() - start_depth);
+    // std::cout << "TileMatmulOperatorForCuda(final)" << std::endl << tile_node << std::endl;
+  }
   return tile_node;
 }
 
@@ -1364,7 +1472,12 @@ void TileOuterBand::ResetWarpMappingConfig() {
 }
 
 isl::schedule_node TileOuterBand::InsertPromoteMarker(const isl::schedule_node node) {
-  isl::schedule_node tile_node = node.child(0);
+  isl::schedule_node tile_node;
+  if (scop_info_.user_config_.GetEnableMatmulElem()) {
+    tile_node = node.child(0).child(0).child(0);
+  } else {
+    tile_node = node.child(0);
+  }
   bool is_matrixc_promote_shared = IsMatrixCPromoteToShared();
 
   // Add different promotion marks in different positions.

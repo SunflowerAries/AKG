@@ -885,6 +885,7 @@ struct ReduceTensorInfo {
 };
 
 using ReduceTensorInfoMap = std::unordered_map<isl::id, ReduceTensorInfo, isl::IslIdIslHash>;
+using MatMulElemInfoMap = std::unordered_map<isl::id, isl::union_map, isl::IslIdIslHash>;
 
 struct Mma {
   int64_t m;
@@ -1225,6 +1226,11 @@ class AnalysisResult {
     reduce_tensor_info_[id] = reduceinfo;
   }
 
+  MatMulElemInfoMap GetMatMulElemInfoMap() const { return matmul_elem_info_; }
+  void RecordMatMulElemInfoMap(const isl::id id, const isl::union_map &matmuleleminfo) {
+    matmul_elem_info_.emplace(id, matmuleleminfo);
+  }
+
   bool IsPureReduceSum(const Add *add, const std::string &prov_func_name);
   isl::union_map GetReduceWriteStmt(const isl::schedule_node_band &band);
   std::string GetReduceOpType(isl::id reduce_stmt);
@@ -1306,6 +1312,7 @@ class AnalysisResult {
   bool use_gpu_reduce_lib_{false};
   ReduceMap reduces_;
   ReduceTensorInfoMap reduce_tensor_info_;
+  MatMulElemInfoMap matmul_elem_info_;
   std::unordered_map<isl::id, ReduceDirection, isl::IslIdIslHash> reduce_direction_map_;
   std::vector<isl::id> reduce_init_ids_;
   std::unordered_set<std::string> reduce_attrs_;

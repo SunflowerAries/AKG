@@ -55,11 +55,30 @@ isl::schedule_node MappingOuterBand::DoThreadSynchronization(const isl::schedule
 
   // Step 1. prepare info
   bool is_outer = IsOuterBandWithNoCoincident(node);
+  std::cout << "DoThreadSynchronization(upa_node_mapping_)" << std::endl;
+  for (auto upa : scop_info_.upa_node_mapping_) {
+    std::cout << upa.first << std::endl;
+    for (auto second : upa.second) {
+      std::cout << second.first << " " << second.second.schedule_upa << std::endl;
+    }
+  }
+  auto dump_cfg = [&node](MappingCfg* cfg) {
+    std::cout << cfg->bound << " ";
+    for (size_t i = 0; i < cfg->bound; ++i) {
+      auto ti = cfg->GetAt(i);
+      auto id = isl::id(node.ctx(), ti.first);
+      std::cout << id << " " << ti.second << std::endl;
+    }
+  };
+  dump_cfg(thread_cfg);
   auto domain_thread = MapDomainToThread(node, thread_cfg, scop_info_.upa_node_mapping_);
+  std::cout << "DoThreadSynchronization" << std::endl << domain_thread << std::endl << other_mapping_cfg.size() << std::endl;
   for (size_t i = 0; i < other_mapping_cfg.size(); ++i) {
     auto mapping_cfg = other_mapping_cfg[i];
     CHECK(mapping_cfg != nullptr) << "mapping config is null";
+    dump_cfg(mapping_cfg);
     auto domain_other_mapping = MapDomainToThread(node, mapping_cfg, scop_info_.upa_node_mapping_);
+    std::cout << "DoThreadSynchronization" << std::endl << domain_other_mapping << std::endl;
     domain_thread = domain_thread.union_add(domain_other_mapping);
   }
   auto domain_node = CollectDomain(node);
@@ -382,6 +401,7 @@ isl::schedule_node MappingOuterBand::DoThreadMapping(const isl::schedule_node &o
     std::string marker_name = THREAD_MARKER;
     // batch matmul operator
     bool is_bmm_stmt = false;
+    std::cout << "MapFromInner" << std::endl << node << std::endl;
     if (scop_info_.user_config_.GetEnableTensorCoreUsePoly() && node.has_parent() &&
         !GetMarkerName(node.parent(), WARP_MARKER).empty()) {
       marker_name = WARP_MARKER;
@@ -430,7 +450,14 @@ isl::schedule_node MappingOuterBand::DoSequenceNodeMapping(const isl::schedule_n
   if (IsAllLeaf(orig_node) || orig_node.n_children() <= 1 || NumMappedDescendant(thread_record, orig_node) <= 0) {
     return orig_node;
   }
+  std::cout << "DoSequenceNodeMapping" << std::endl;
+  for (const auto &record : thread_record) {
+    auto child_node = record.first;
+    auto thread_size = record.second;
+    std::cout << child_node << std::endl << thread_size << std::endl;
+  }
   isl::schedule_node node = MapSequenceNode(orig_node, thread_record);
+  std::cout << "DoSequenceNodeMapping(after MapSequenceNode)" << std::endl << node << std::endl;
 
   auto need_sync = node.isa<isl::schedule_node_sequence>();
   if (need_sync) {
@@ -441,6 +468,7 @@ isl::schedule_node MappingOuterBand::DoSequenceNodeMapping(const isl::schedule_n
       std::vector<MappingCfg *> other_mapping_cfg;
       other_mapping_cfg.push_back(scop_info_.user_config_.GetReplaceConfig()[WARP_COMPUTE]);
       node = DoThreadSynchronization(node, other_mapping_cfg);
+      std::cout << "DoSequenceNodeMapping(after DoThreadSynchronization)" << std::endl << node << std::endl;
     } else if (!is_reduce_stmt) {
       node = DoThreadSynchronization(node);
     }
@@ -579,6 +607,13 @@ isl::schedule MappingOuterBand::Run(isl::schedule sch) {
 
   using std::placeholders::_1;
   sch = DoMapping(sch, std::bind(&MappingOuterBand::DoThreadMapping, this, _1), false);
+  std::cout << "upa_node_mapping_" << std::endl;
+  for (auto upa : scop_info_.upa_node_mapping_) {
+    std::cout << upa.first << std::endl;
+    for (auto second : upa.second) {
+      std::cout << second.first << " " << second.second.schedule_upa << std::endl;
+    }
+  }
 
   sch = DoMapping(sch, std::bind(&MappingOuterBand::DoBlockMapping, this, _1));
 

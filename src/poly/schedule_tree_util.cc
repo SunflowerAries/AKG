@@ -367,7 +367,9 @@ isl::multi_union_pw_aff MapDomainToThread(const isl::schedule_node &node, Mappin
 
           auto upa_node_thread = isl::multi_union_pw_aff(space, upa_list);
           upa_node_thread = upa_node_thread.intersect_domain(domain_upa_node);
+          std::cout << "MapDomainToThread: " << domain_threads << std::endl;
           domain_threads = domain_threads.union_add(upa_node_thread);
+          std::cout << "MapDomainToThread: " << domain_threads << std::endl;
         }
         tmp_upa_node_mapping.erase(tmp_upa_node_mapping.begin() + i);
         return compare_node;

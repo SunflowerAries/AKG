@@ -350,7 +350,7 @@ class ScopMakeScheduleTree final : protected IRVisitor {
     for (auto set : domain.get_set_list()) {
       upa = upa.union_add(isl::union_pw_aff(f.unbind_params_insert_domain(map.at(set.tuple_id()).tuple)));
       std::cout << "GetUnionPwAffAtDomain: " << f << " " << set << " " << set.tuple_id() << " " \
-      << map.at(set.tuple_id()).tuple << " " << f.unbind_params_insert_domain(map.at(set.tuple_id()).tuple) << std::endl;
+      << map.at(set.tuple_id()).tuple << " " << f.unbind_params_insert_domain(map.at(set.tuple_id()).tuple) << std::endl << "upa: " << upa << std::endl;
     }
     return upa;
   }

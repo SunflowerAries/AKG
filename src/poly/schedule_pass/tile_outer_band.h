@@ -111,6 +111,13 @@ class TileOuterBand : public SchedulePass {
   // cuda related functions
   isl::schedule_node MarkOuterPermutableCuda(isl::schedule_node node);
 
+  isl::schedule_node ReorderStatements(const isl::schedule_node &node, isl::union_set elem);
+
+  isl::union_set GetCurrentNodeElemStatements(const isl::schedule_node node, MatMulElemInfoMap &all_elem_map,
+                                                const bool need_delete_elem = true);
+  isl::union_set GetElemStatements(isl::union_set domain, isl::union_map elem_statement_map,
+                                     StatementMap all_statements);
+
   isl::schedule_node TileMatmulOperatorForCuda(const isl::schedule_node &node);
   isl::schedule_node TileElementWiseForCuda(const isl::schedule_node &node);
 

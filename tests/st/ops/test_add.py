@@ -197,11 +197,11 @@ class TestCase(TestBase):
         ]
 
         self.test_args_default = [
-            ("000_add", add_run, ((512, 1), (512, 1), 'float32'), ["level0"]),
-            ("001_add", add_run, ((1024, 2), (1024, 2), 'float32'), ["level0"]),
-            ("002_add", add_run, ((1024, 1024), (1024, 1024), 'float32'), ["level0"]),
-            ("003_add", add_run, ((1024, 10240), (1024, 10240), 'float32'), ["level1"]),
-            ("004_add", add_run, ((1024, 1024, 10), (1024, 1024, 10), 'float32'), ["level1"])
+            # ("000_add", add_run, ((512, 1), (512, 1), 'float32'), ["level0"]),
+            # ("001_add", add_run, ((1024, 2), (1024, 2), 'float32'), ["level0"]),
+            # ("002_add", add_run, ((1024, 1024), (1024, 1024), 'float32'), ["level0"]),
+            ("003_add", add_run, ((12288, 1024), (1, 1024), 'float16'), ["level0"]),
+            # ("004_add", add_run, ((1024, 1024, 10), (1024, 1024, 10), 'float32'), ["level1"])
         ]
 
         return True

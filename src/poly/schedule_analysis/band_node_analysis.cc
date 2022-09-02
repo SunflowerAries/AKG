@@ -316,12 +316,43 @@ class OperatorInfoCollector {
         for (auto &it : provides) {
           for (auto &prov : it.second) {
             if (std::find_if(prov.src.begin(), prov.src.end(), [&matmul_t](const TensorEntry &t) { return t.name == matmul_t.name; }) != prov.src.end() &&
-              prov.basic_op_type.find(AT_ELEMWISE) != std::string::npos) {
+              prov.basic_op_type.find(AT_ELEMWISE) != std::string::npos && prov.dst.name != matmul_t.name) {
               std::for_each(prov.src.begin(), prov.src.end(), [&matmul_t, this](const TensorEntry &t) {
                 if (t.name != matmul_t.name) {
                   this->scop_info_.analysis_result_.RecordMatrixMatmulMap(t.name, MATRIX_BIAS);
                 }
               });
+              isl::id elem_id;
+              for (auto &c : scop_info_.analysis_result_.GetStatementMap()) {
+                if (prov.op == c.second) {
+                  elem_id = c.first;
+                  break;
+                }
+              }
+              OperatorDomainSpace op_domain;
+              auto dm = scop_info_.analysis_result_.GetOperatorDomainMap();
+              if (dm.count(elem_id)) {
+                op_domain = dm[elem_id];
+              }
+              isl::aff_list aff_list = isl::aff_list(op_domain.tuple.ctx(), 0);
+              std::cout << "RecordMatmulInfo" << std::endl << aff_list << std::endl;
+              for (auto id : op_domain.tuple.get_id_list()) {
+                isl::aff aff = isl::aff::param_on_domain(op_domain.param_space, id);
+                std::cout << "RecordMatmulInfo" << std::endl << aff << std::endl;
+                aff = aff.unbind_params_insert_domain(op_domain.tuple);
+                std::cout << "RecordMatmulInfo" << std::endl << aff << std::endl;
+                aff_list = aff_list.add(aff);
+                std::cout << "RecordMatmulInfo" << std::endl << aff_list << std::endl;
+              }
+              isl::space op_domain_space = op_domain.tuple.get_space();
+              std::cout << "RecordMatmulInfo(op_domain_space)" << std::endl << op_domain_space << std::endl;
+              isl::space space = op_domain_space.params().add_named_tuple_id_ui(elem_id, aff_list.size());
+              std::cout << "RecordMatmulInfo(space)" << std::endl << space << std::endl;
+              space = op_domain_space.product(space).unwrap();
+              std::cout << "RecordMatmulInfo(space)" << std::endl << space << std::endl;
+              isl::union_map upa = isl::union_map(isl::map(isl::multi_aff(space, aff_list)));
+              std::cout << "RecordMatmulInfo(upa)" << std::endl << upa << std::endl;
+              this->scop_info_.analysis_result_.RecordMatMulElemInfoMap(elem_id, upa);
               this->scop_info_.analysis_result_.RecordMatrixMatmulMap(prov.dst.name, MATRIX_ELEM_OUT);
               this->scop_info_.analysis_result_.RecordMatrixMatmulMajor(prov.dst.name, this->scop_info_.analysis_result_.GetMatrixMatmulMajor()[op->func->func_name()]);
               enable_matmul_elem = true;
