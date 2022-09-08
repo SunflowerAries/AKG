@@ -63,7 +63,7 @@ isl::schedule_node MappingOuterBand::DoThreadSynchronization(const isl::schedule
     }
   }
   auto dump_cfg = [&node](MappingCfg* cfg) {
-    std::cout << cfg->bound << " ";
+    std::cout << "DoThreadSynchronization(dump_cfg)" << cfg->bound << std::endl;
     for (size_t i = 0; i < cfg->bound; ++i) {
       auto ti = cfg->GetAt(i);
       auto id = isl::id(node.ctx(), ti.first);
@@ -82,17 +82,21 @@ isl::schedule_node MappingOuterBand::DoThreadSynchronization(const isl::schedule
     domain_thread = domain_thread.union_add(domain_other_mapping);
   }
   auto domain_node = CollectDomain(node);
+  std::cout << "DoThreadSynchronization(domain_node): " << domain_node << std::endl;
   bool sub_set = domain_node.is_subset(domain_thread.domain());
   CHECK(sub_set) << "There are remaining domains that have not been mapped to threadID";
 
   auto domain_warp = MapDomainToWarp(node, thread_cfg, domain_thread);
+  std::cout << "DoThreadSynchronization(domain_warp): " << domain_warp << std::endl;
 
   // Step 2. construct a linked list for all nodes in the input sequence node
   auto head = InitSyncLinkedList(node, domain_thread, domain_warp);
+  std::cout << "DoThreadSynchronization(head): " << head << std::endl;
 
   // Step 3. Use "fewest synchronization number first" strategy to determine the
   //         optimization sync position in the sequence node.
   head = CountSyncNumberAmongLoop(head);
+  std::cout << "DoThreadSynchronization(head): " << head << std::endl;
   auto start = GetBestSyncStartPoint(is_outer);
   auto all_syncs = DetermineOptSyncPos(head, start);
   std::sort(all_syncs.begin(), all_syncs.end(),
@@ -401,7 +405,7 @@ isl::schedule_node MappingOuterBand::DoThreadMapping(const isl::schedule_node &o
     std::string marker_name = THREAD_MARKER;
     // batch matmul operator
     bool is_bmm_stmt = false;
-    std::cout << "MapFromInner" << std::endl << node << std::endl;
+    std::cout << "MapFromInner" << std::endl << node;
     if (scop_info_.user_config_.GetEnableTensorCoreUsePoly() && node.has_parent() &&
         !GetMarkerName(node.parent(), WARP_MARKER).empty()) {
       marker_name = WARP_MARKER;
@@ -414,6 +418,7 @@ isl::schedule_node MappingOuterBand::DoThreadMapping(const isl::schedule_node &o
     }
 
     if (CanBeMappedToThread(node, thread_record, marker_name)) {
+      std::cout << "CanBeMappedToThread" << std::endl;
       auto node_bak = node;
       size_t mapped_threads = 0;
       auto mapping_cfg = scop_info_.user_config_.GetThreadConfig();

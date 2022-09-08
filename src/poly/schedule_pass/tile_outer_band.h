@@ -111,7 +111,7 @@ class TileOuterBand : public SchedulePass {
   // cuda related functions
   isl::schedule_node MarkOuterPermutableCuda(isl::schedule_node node);
 
-  isl::schedule_node ReorderStatements(const isl::schedule_node &node, isl::union_set elem);
+  isl::schedule_node ReorderStatements(const isl::schedule_node &node, isl::union_set elem, size_t count_coincident);
 
   isl::union_set GetCurrentNodeElemStatements(const isl::schedule_node node, MatMulElemInfoMap &all_elem_map,
                                                 const bool need_delete_elem = true);

@@ -81,6 +81,16 @@ isl::schedule_node OperatorMappingStrategy::AnalysisNodeAndInsertMapFilter(const
   }
 
   std::unordered_set<std::string> current_mapping_cfg;
+  std::cout << "AnalysisNodeAndInsertMapFilter " << upa_list << std::endl;
+  auto dump_cfg = [&node](MappingCfg* cfg) {
+    std::cout << "AnalysisNodeAndInsertMapFilter(dump_cfg) " << cfg->bound << std::endl;
+    for (size_t i = 0; i < cfg->bound; ++i) {
+      auto ti = cfg->GetAt(i);
+      auto id = isl::id(node.ctx(), ti.first);
+      std::cout << id << " " << ti.second << std::endl;
+    }
+  };
+  dump_cfg(mapping_cfg_);
   for (size_t i = 0; i < upa_list.size(); ++i) {
     if (required_mapping_strategy_.count(static_cast<int>(i)) == 0) {
       continue;
@@ -89,6 +99,7 @@ isl::schedule_node OperatorMappingStrategy::AnalysisNodeAndInsertMapFilter(const
     auto offset_i = required_mapping_strategy_[static_cast<int>(i)].offset;
     std::pair<std::string, int> cfg = mapping_cfg_->GetAt(mapping_i);
     current_mapping_cfg.emplace(cfg.first);
+    std::cout << "AnalysisNodeAndInsertMapFilter" << i  << mapping_i << 
 
     auto upa = upa_list.get_at(i);
     CHECK_GT(cfg.second, 0);
@@ -144,6 +155,7 @@ isl::schedule_node OperatorMappingStrategy::MapDimToThreadsBlocks(const isl::sch
       node = node.insert_mark(isl::id(node.ctx(), marker_name)).child(0);
     }
 
+    std::cout << "is_promotion_mapping_" << std::endl;
     node = AnalysisNodeAndInsertMapFilter(node, upa_list);
     node = node.parent();
     if (is_tiled) {
@@ -359,6 +371,7 @@ isl::schedule_node OperatorMappingStrategy::MapThreadBlockHelper(const isl::sche
       is_insert_filter_ = false;
       is_set_config_zero_ = false;
     }
+    std::cout << "MapThreadBlockHelper(first MapDimToThreadsBlocks)" << std::endl;
     node = MapDimToThreadsBlocks(node);
   }
 
@@ -374,6 +387,7 @@ isl::schedule_node OperatorMappingStrategy::MapThreadBlockHelper(const isl::sche
       }
       mapping_cfg_ = GetRepeatedReplaceMappingConfig(node, cfg.first);
       CHECK(mapping_cfg_ != nullptr) << "mapping config is null";
+      std::cout << "MapThreadBlockHelper(second MapDimToThreadsBlocks)" << std::endl;
       node = MapDimToThreadsBlocks(node);
       ++i;
     }
@@ -395,6 +409,7 @@ size_t OperatorMappingStrategy::MapThreadHelper(isl::schedule_node &thread_root)
 
   // Map band under thread_root from inner dim to outer dim.
   thread_root = MapThreadBlockHelper(thread_root);
+  std::cout << "MapThreadHelper(after MapThreadBlockHelper)" << std::endl << thread_root << std::endl;
 
   // Do unroll if needed.
   if (scop_info_.user_config_.GetMaxUnrollLoop() != 1) {

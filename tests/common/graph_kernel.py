@@ -411,4 +411,181 @@ FusedMatMulAdd = {
     "process": "cuda"
 }
 
+FusedMulSubReduceSum = {
+    "composite": True,
+    "composite_graph": "1652.1652",
+    "compute_capability": "7.5",
+    "id": 0,
+    "input_desc": [
+        [
+            {
+                "data_type": "float32",
+                "format": "DefaultFormat",
+                "shape": [
+                    12288,
+                    1024
+                ],
+                "tensor_name": "input_0"
+            }
+        ],
+        [
+            {
+                "data_type": "float32",
+                "format": "DefaultFormat",
+                "shape": [
+                    12288,
+                    1
+                ],
+                "tensor_name": "output_0_1"
+            }
+        ]
+    ],
+    "op": "Fused_Mul_Sub_ReduceSum_split_10362174774785390160",
+    "op_desc": [
+        {
+            "attr": None,
+            "impl_path":"",
+            "input_desc":   [
+                [
+                    {
+                        "data_type": "float32",
+                        "format": "DefaultFormat",
+                        "name": "input_0",
+                        "shape": [
+                            12288,
+                            1024
+                        ],
+                        "tensor_name": "input_0"
+                    }
+                ],
+                [
+                    {
+                        "data_type": "float32",
+                        "format": "DefaultFormat",
+                        "name": "input_1",
+                        "shape": [
+                            12288,
+                            1
+                        ],
+                        "tensor_name": "output_0_1"
+                    }
+                ]
+            ],
+            "name":"Sub",
+            "output_desc": [
+                {
+                    "data_type": "float32",
+                    "format": "DefaultFormat",
+                    "name": "output_0",
+                    "shape": [
+                        12288,
+                        1024
+                    ],
+                    "tensor_name": "output_0_2"
+                }
+            ]        
+        },
+        {
+            "attr": None,
+            "impl_path": "",
+            "input_desc": [
+                [
+                    {
+                        "data_type": "float32",
+                        "format": "DefaultFormat",
+                        "name": "input_0",
+                        "shape": [
+                            12288,
+                            1024
+                        ],
+                        "tensor_name": "output_0_2"
+                    }
+                ],
+                [
+                    {
+                        "data_type": "float32",
+                        "format": "DefaultFormat",
+                        "name": "input_1",
+                        "shape": [
+                            12288,
+                            1024
+                        ],
+                        "tensor_name": "output_0_2"
+                    }
+                ]
+            ],
+            "name": "Mul",
+            "output_desc": [
+                {
+                    "data_type": "float32",
+                    "format": "DefaultFormat",
+                    "name": "output_0",
+                    "shape": [
+                        12288,
+                        1024
+                    ],
+                    "tensor_name": "output_0_3"
+                }
+            ],
+        },
+        {
+            "attr": [
+                {
+                    "data_type": "bool",
+                    "name": "keep_dims",
+                    "value": True
+                },
+                {
+                    "data_type": "listInt",
+                    "name": "axis",
+                    "value": [
+                        1
+                    ]
+                }
+            ],
+            "impl_path": "",
+            "input_desc": [
+                [
+                    {
+                        "data_type": "float32",
+                        "format": "DefaultFormat",
+                        "name": "input_0",
+                        "shape": [
+                            12288,
+                            1024
+                        ],
+                        "tensor_name": "output_0_3"
+                    }
+                ]
+            ],
+            "name": "ReduceSum",
+            "output_desc": [
+                {
+                    "data_type": "float32",
+                    "format": "DefaultFormat",
+                    "name": "output_0",
+                    "shape": [
+                        12288,
+                        1
+                    ],
+                    "tensor_name": "output_0_4"
+                }
+            ],
+        }
+    ],
+    "output_desc": [
+        {
+            "data_type": "float32",
+            "format": "DefaultFormat",
+            "shape": [
+                12288,
+                1
+            ],
+            "tensor_name": "output_0_4"
+        }
+    ],
+    "platform": "AKG",
+    "process": "cuda"
+}
+
 composite.build(FusedMatMulAdd)
