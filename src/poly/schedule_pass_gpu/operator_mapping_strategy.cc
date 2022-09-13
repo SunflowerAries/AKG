@@ -99,11 +99,13 @@ isl::schedule_node OperatorMappingStrategy::AnalysisNodeAndInsertMapFilter(const
     auto offset_i = required_mapping_strategy_[static_cast<int>(i)].offset;
     std::pair<std::string, int> cfg = mapping_cfg_->GetAt(mapping_i);
     current_mapping_cfg.emplace(cfg.first);
-    std::cout << "AnalysisNodeAndInsertMapFilter" << i  << mapping_i << 
+    std::cout << "AnalysisNodeAndInsertMapFilter " << mapping_i << " " << cfg.first << std::endl;
 
     auto upa = upa_list.get_at(i);
     CHECK_GT(cfg.second, 0);
+    std::cout << "AnalysisNodeAndInsertMapFilter(upa) " << upa << " " << cfg.second << std::endl;
     upa = upa.mod(isl::val(node.ctx(), cfg.second));
+    std::cout << "AnalysisNodeAndInsertMapFilter(upa) " << upa << " is_set_config_zero_: " << is_set_config_zero_ << std::endl;
     auto id = isl::id(node.ctx(), cfg.first);
     MappingScheduleInfo mapping_schedule_info;
     mapping_schedule_info.schedule_upa = upa;

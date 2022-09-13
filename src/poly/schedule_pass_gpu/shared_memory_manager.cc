@@ -70,6 +70,8 @@ isl::schedule_node SharedMemoryManager::HoistSharedMemoryOnMark(const isl::sched
       return node;
     }
 
+    std::cout << node;
+
     if (tmp_mark_name == PROMOTE_GLOBAL_TO_SHARED_C) {
       remain_memory_ = akg::common::ADVANCED_SHARED_MEMORY_SIZE;
     }
@@ -91,6 +93,7 @@ isl::schedule_node SharedMemoryManager::HoistSharedMemoryOnMark(const isl::sched
 isl::schedule SharedMemoryManager::HoistSharedMemory() {
   isl::schedule_node node = GetOuterBand(schedule_.root());
   if (node.isa<isl::schedule_node_band>()) {
+    std::cout << "HoistSharedMemory" << std::endl;
     node = HoistSharedMemoryOnMark(node);
   } else {
     int number = static_cast<int>(node.n_children());
@@ -123,6 +126,9 @@ void SharedMemoryManager::SetPromotedMarkNames() {
       mark_names_.emplace(PROMOTE_GLOBAL_TO_SHARED_C);
     }
     mark_names_.emplace(PROMOTE_GLOBAL_TO_SHARED_AB);
+    if (scop_info_.user_config_.GetEnableMatmulElem()) {
+      mark_names_.emplace(PROMOTE_GLOBAL_TO_SHARED);
+    }
   } else {
     mark_names_.emplace(PROMOTE_GLOBAL_TO_SHARED);
   }

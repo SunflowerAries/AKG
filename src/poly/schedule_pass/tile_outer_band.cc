@@ -1447,6 +1447,7 @@ isl::schedule_node TileOuterBand::TileMatmulOperatorForCuda(const isl::schedule_
     std::cout << "TileMatmulOperatorForCuda(first tile_elem_node)" << std::endl << tile_elem_node << std::endl;
     tile_elem_node = tile_elem_node.insert_mark(PROMOTE_GLOBAL_TO_SHARED).child(0).child(0).child(0);
     tile_elem_node = tile_elem_node.insert_mark(WARP_MARKER).child(0);
+    tile_elem_node = TileBand(tile_elem_node, GetTileSizeOfLevelForCuda(tile_elem_node, TileType::WARPC1, count_coincident));
     // auto level_tile_size = ComputeBandTilesSizes(tile_elem_node, &std::vector<int>{1, 8}[0]);
     // tile_elem_node = TileBand(tile_elem_node, level_tile_size).child(0);
     std::cout << "TileMatmulOperatorForCuda(second tile_elem_node)" << std::endl << tile_elem_node << std::endl;

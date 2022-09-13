@@ -70,6 +70,7 @@ isl::schedule_node RegisterMemoryManager::HoistRegisterMemoryOnMark(const isl::s
 isl::schedule RegisterMemoryManager::HoistRegisterMemory() {
   isl::schedule_node node = GetOuterBand(schedule_.root());
   if (node.isa<isl::schedule_node_band>()) {
+    std::cout << "HoistRegisterMemory" << std::endl << node;
     node = HoistRegisterMemoryOnMark(node);
   } else {
     int number = static_cast<int>(node.n_children());

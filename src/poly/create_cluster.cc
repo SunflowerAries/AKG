@@ -114,11 +114,13 @@ void CreateCluster::RecordPromotedTensorInfo(const isl::schedule_node &orig_node
 
   std::vector<isl::schedule_node> nodes = CollectMarkNode(orig_node, mark_name);
 
+  std::cout << "RecordPromotedTensorInfo" << std::endl;
   for (const auto &node : nodes) {
     auto tree = node.parent();
     auto partial_sched = GetPartialSchedule(tree);
 
     for (const auto &tensor : all_tensors_list) {
+      std::cout << tensor.first << " " << int(tensor.second) << std::endl;
       auto promoted_id = tensor.first;
       BufferDefInfo promoted_info = GetPromotedInfo(promoted_id, mark_name);
 
@@ -284,7 +286,9 @@ void SharedCreateCluster::CreateClusterListForGemm(const isl::schedule_node &nod
     tensor_set.clear();
     if (hoist_tensor_c) {
       tensor_set.emplace(TENSOR_C);
+    } else if (mark_name == PROMOTE_GLOBAL_TO_SHARED) {
       if (scop_info_.user_config_.GetEnableMatmulElem()) {
+        tensor_set.emplace(TENSOR_BIAS);
         tensor_set.emplace(TENSOR_ELEM_OUT);
       }
     } else {
@@ -555,15 +559,9 @@ void RegisterCreateCluster::CreateClusterListForGemm(const isl::schedule_node &n
     tensor_set.clear();
     if (hoist_tensor_c) {
       tensor_set.emplace(TENSOR_C);
-      if (scop_info_.user_config_.GetEnableMatmulElem()) {
-        tensor_set.emplace(TENSOR_ELEM_OUT);
-      }
     } else {
       tensor_set.emplace(TENSOR_A);
       tensor_set.emplace(TENSOR_B);
-      if (scop_info_.user_config_.GetEnableMatmulElem()) {
-        tensor_set.emplace(TENSOR_BIAS);
-      }
     }
     PromotedTensor current_tensors = GetCurrentMarkerTensorsForGemm(tensor_set);
     RecordPromotedTensorInfo(node, mark_name, current_tensors);

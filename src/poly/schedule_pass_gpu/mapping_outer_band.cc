@@ -57,13 +57,13 @@ isl::schedule_node MappingOuterBand::DoThreadSynchronization(const isl::schedule
   bool is_outer = IsOuterBandWithNoCoincident(node);
   std::cout << "DoThreadSynchronization(upa_node_mapping_)" << std::endl;
   for (auto upa : scop_info_.upa_node_mapping_) {
-    std::cout << upa.first << std::endl;
+    std::cout << upa.first;
     for (auto second : upa.second) {
       std::cout << second.first << " " << second.second.schedule_upa << std::endl;
     }
   }
   auto dump_cfg = [&node](MappingCfg* cfg) {
-    std::cout << "DoThreadSynchronization(dump_cfg)" << cfg->bound << std::endl;
+    std::cout << "DoThreadSynchronization(dump_cfg) " << cfg->bound << std::endl;
     for (size_t i = 0; i < cfg->bound; ++i) {
       auto ti = cfg->GetAt(i);
       auto id = isl::id(node.ctx(), ti.first);
@@ -469,10 +469,13 @@ isl::schedule_node MappingOuterBand::DoSequenceNodeMapping(const isl::schedule_n
     if (is_reduce_stmt && node.has_parent() && !GetMarkerName(node.parent(), INSERT_SYNC).empty()) {
       node = node.parent().del();
       node = DoThreadSynchronization(node);
+      std::cout << "DoSequenceNodeMapping(after DoThreadSynchronization)" << std::endl << node << std::endl;
     } else if (!is_reduce_stmt && scop_info_.user_config_.GetEnableTensorCoreUsePoly()) {
       std::vector<MappingCfg *> other_mapping_cfg;
       other_mapping_cfg.push_back(scop_info_.user_config_.GetReplaceConfig()[WARP_COMPUTE]);
-      node = DoThreadSynchronization(node, other_mapping_cfg);
+      if (!scop_info_.user_config_.GetEnableMatmulElem()) {
+        node = DoThreadSynchronization(node, other_mapping_cfg);
+      }
       std::cout << "DoSequenceNodeMapping(after DoThreadSynchronization)" << std::endl << node << std::endl;
     } else if (!is_reduce_stmt) {
       node = DoThreadSynchronization(node);
